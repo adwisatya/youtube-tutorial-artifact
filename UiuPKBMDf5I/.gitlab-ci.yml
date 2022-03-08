@@ -1,0 +1,39 @@
+stages:
+    - archiving
+    - deploy
+    - apitest
+
+archive:
+    stage: archiving
+    only:
+        - main
+    image: ubuntu
+    when:
+        on_success
+    before_script:
+        - apt-get update
+        - apt-get install zip -y
+    script:
+        - zip -g $CI_PROJECT_NAME.zip lambda_function.py
+    artifacts:
+        paths:
+        - $CI_PROJECT_NAME.zip
+
+deploy:
+    stage: deploy
+    image:
+        name: amazon/aws-cli
+        entrypoint: [""]
+    script:
+        - aws --version
+        - aws configure set region us-east-2
+        - aws lambda update-function-code --function-name lambda-hello-world --zip-file fileb://$CI_PROJECT_NAME.zip
+
+apitest:
+    stage: apitest
+    image:
+        name: curl
+    script:
+        - curl https://o8117usef.execute-api.us-east-2.amazonaws.com/default/lambda-hello-world
+        - if [[ $? -ge 0 ]]; then exit 99; fi
+
