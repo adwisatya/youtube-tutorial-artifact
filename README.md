@@ -6,3 +6,4 @@ You can watch my video in my channel: https://youtube.com/channel/UCApg6-IAzDl41
 - UiuPKBMDf5I Gitlab CI CD Pipeline for Auto Deploy AWS Lambda Python | DevOps for Beginner Tutorial
 - whLrTKuDcao Belajar UI Frontend Automation Test dengan Robotframework Selenium
 - qmc-MwLGNkw Create Gitlab Notification Bot for Issue & Merge Request Using Telegram Bot and AWS Lambda
+- SPnKYsD6Df8 Auto Deploy Hadoop Under 10 Minutes using AWS CloudFormation and EC2
