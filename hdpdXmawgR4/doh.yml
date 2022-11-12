@@ -1,0 +1,645 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation to deploy your own DNS over HTTPS
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.small
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - c1.medium
+      - c1.xlarge
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - hi1.4xlarge
+      - hs1.8xlarge
+      - cr1.8xlarge
+      - cc2.8xlarge
+      - cg1.4xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  SSHLocation:
+    Description: ' The IP address range that can be used to SSH to the EC2 instances'
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+Mappings:
+  AWSInstanceType2Arch:
+    t1.micro:
+      Arch: HVM64
+    t2.nano:
+      Arch: HVM64
+    t2.micro:
+      Arch: HVM64
+    t2.small:
+      Arch: HVM64
+    t2.medium:
+      Arch: HVM64
+    t2.large:
+      Arch: HVM64
+    m1.small:
+      Arch: HVM64
+    m1.medium:
+      Arch: HVM64
+    m1.large:
+      Arch: HVM64
+    m1.xlarge:
+      Arch: HVM64
+    m2.xlarge:
+      Arch: HVM64
+    m2.2xlarge:
+      Arch: HVM64
+    m2.4xlarge:
+      Arch: HVM64
+    m3.medium:
+      Arch: HVM64
+    m3.large:
+      Arch: HVM64
+    m3.xlarge:
+      Arch: HVM64
+    m3.2xlarge:
+      Arch: HVM64
+    m4.large:
+      Arch: HVM64
+    m4.xlarge:
+      Arch: HVM64
+    m4.2xlarge:
+      Arch: HVM64
+    m4.4xlarge:
+      Arch: HVM64
+    m4.10xlarge:
+      Arch: HVM64
+    c1.medium:
+      Arch: HVM64
+    c1.xlarge:
+      Arch: HVM64
+    c3.large:
+      Arch: HVM64
+    c3.xlarge:
+      Arch: HVM64
+    c3.2xlarge:
+      Arch: HVM64
+    c3.4xlarge:
+      Arch: HVM64
+    c3.8xlarge:
+      Arch: HVM64
+    c4.large:
+      Arch: HVM64
+    c4.xlarge:
+      Arch: HVM64
+    c4.2xlarge:
+      Arch: HVM64
+    c4.4xlarge:
+      Arch: HVM64
+    c4.8xlarge:
+      Arch: HVM64
+    g2.2xlarge:
+      Arch: HVMG2
+    g2.8xlarge:
+      Arch: HVMG2
+    r3.large:
+      Arch: HVM64
+    r3.xlarge:
+      Arch: HVM64
+    r3.2xlarge:
+      Arch: HVM64
+    r3.4xlarge:
+      Arch: HVM64
+    r3.8xlarge:
+      Arch: HVM64
+    i2.xlarge:
+      Arch: HVM64
+    i2.2xlarge:
+      Arch: HVM64
+    i2.4xlarge:
+      Arch: HVM64
+    i2.8xlarge:
+      Arch: HVM64
+    d2.xlarge:
+      Arch: HVM64
+    d2.2xlarge:
+      Arch: HVM64
+    d2.4xlarge:
+      Arch: HVM64
+    d2.8xlarge:
+      Arch: HVM64
+    hi1.4xlarge:
+      Arch: HVM64
+    hs1.8xlarge:
+      Arch: HVM64
+    cr1.8xlarge:
+      Arch: HVM64
+    cc2.8xlarge:
+      Arch: HVM64
+  AWSInstanceType2NATArch:
+    t1.micro:
+      Arch: NATHVM64
+    t2.nano:
+      Arch: NATHVM64
+    t2.micro:
+      Arch: NATHVM64
+    t2.small:
+      Arch: NATHVM64
+    t2.medium:
+      Arch: NATHVM64
+    t2.large:
+      Arch: NATHVM64
+    m1.small:
+      Arch: NATHVM64
+    m1.medium:
+      Arch: NATHVM64
+    m1.large:
+      Arch: NATHVM64
+    m1.xlarge:
+      Arch: NATHVM64
+    m2.xlarge:
+      Arch: NATHVM64
+    m2.2xlarge:
+      Arch: NATHVM64
+    m2.4xlarge:
+      Arch: NATHVM64
+    m3.medium:
+      Arch: NATHVM64
+    m3.large:
+      Arch: NATHVM64
+    m3.xlarge:
+      Arch: NATHVM64
+    m3.2xlarge:
+      Arch: NATHVM64
+    m4.large:
+      Arch: NATHVM64
+    m4.xlarge:
+      Arch: NATHVM64
+    m4.2xlarge:
+      Arch: NATHVM64
+    m4.4xlarge:
+      Arch: NATHVM64
+    m4.10xlarge:
+      Arch: NATHVM64
+    c1.medium:
+      Arch: NATHVM64
+    c1.xlarge:
+      Arch: NATHVM64
+    c3.large:
+      Arch: NATHVM64
+    c3.xlarge:
+      Arch: NATHVM64
+    c3.2xlarge:
+      Arch: NATHVM64
+    c3.4xlarge:
+      Arch: NATHVM64
+    c3.8xlarge:
+      Arch: NATHVM64
+    c4.large:
+      Arch: NATHVM64
+    c4.xlarge:
+      Arch: NATHVM64
+    c4.2xlarge:
+      Arch: NATHVM64
+    c4.4xlarge:
+      Arch: NATHVM64
+    c4.8xlarge:
+      Arch: NATHVM64
+    g2.2xlarge:
+      Arch: NATHVMG2
+    g2.8xlarge:
+      Arch: NATHVMG2
+    r3.large:
+      Arch: NATHVM64
+    r3.xlarge:
+      Arch: NATHVM64
+    r3.2xlarge:
+      Arch: NATHVM64
+    r3.4xlarge:
+      Arch: NATHVM64
+    r3.8xlarge:
+      Arch: NATHVM64
+    i2.xlarge:
+      Arch: NATHVM64
+    i2.2xlarge:
+      Arch: NATHVM64
+    i2.4xlarge:
+      Arch: NATHVM64
+    i2.8xlarge:
+      Arch: NATHVM64
+    d2.xlarge:
+      Arch: NATHVM64
+    d2.2xlarge:
+      Arch: NATHVM64
+    d2.4xlarge:
+      Arch: NATHVM64
+    d2.8xlarge:
+      Arch: NATHVM64
+    hi1.4xlarge:
+      Arch: NATHVM64
+    hs1.8xlarge:
+      Arch: NATHVM64
+    cr1.8xlarge:
+      Arch: NATHVM64
+    cc2.8xlarge:
+      Arch: NATHVM64
+  AWSRegionArch2AMI:
+    af-south-1:
+      HVM64: ami-064cc455f8a1ef504
+      HVMG2: NOT_SUPPORTED
+    ap-east-1:
+      HVM64: ami-f85b1989
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-1:
+      HVM64: ami-0b2c2a754d5b4da22
+      HVMG2: ami-09d0e0e099ecabba2
+    ap-northeast-2:
+      HVM64: ami-0493ab99920f410fc
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-3:
+      HVM64: ami-01344f6f63a4decc1
+      HVMG2: NOT_SUPPORTED
+    ap-south-1:
+      HVM64: ami-03cfb5e1fb4fac428
+      HVMG2: ami-0244c1d42815af84a
+    ap-southeast-1:
+      HVM64: ami-0ba35dc9caf73d1c7
+      HVMG2: ami-0e46ce0d6a87dc979
+    ap-southeast-2:
+      HVM64: ami-0ae99b503e8694028
+      HVMG2: ami-0c0ab057a101d8ff2
+    ca-central-1:
+      HVM64: ami-0803e21a2ec22f953
+      HVMG2: NOT_SUPPORTED
+    cn-north-1:
+      HVM64: ami-07a3f215cc90c889c
+      HVMG2: NOT_SUPPORTED
+    cn-northwest-1:
+      HVM64: ami-0a3b3b10f714a0ff4
+      HVMG2: NOT_SUPPORTED
+    eu-central-1:
+      HVM64: ami-0474863011a7d1541
+      HVMG2: ami-0aa1822e3eb913a11
+    eu-north-1:
+      HVM64: ami-0de4b8910494dba0f
+      HVMG2: ami-32d55b4c
+    eu-south-1:
+      HVM64: ami-08427144fe9ebdef6
+      HVMG2: NOT_SUPPORTED
+    eu-west-1:
+      HVM64: ami-015232c01a82b847b
+      HVMG2: ami-0d5299b1c6112c3c7
+    eu-west-2:
+      HVM64: ami-0765d48d7e15beb93
+      HVMG2: NOT_SUPPORTED
+    eu-west-3:
+      HVM64: ami-0caf07637eda19d9c
+      HVMG2: NOT_SUPPORTED
+    me-south-1:
+      HVM64: ami-0744743d80915b497
+      HVMG2: NOT_SUPPORTED
+    sa-east-1:
+      HVM64: ami-0a52e8a6018e92bb0
+      HVMG2: NOT_SUPPORTED
+    us-east-1:
+      HVM64: ami-01d08089481510ba2
+      HVMG2: ami-0aeb704d503081ea6
+    us-east-2:
+      HVM64: ami-027cab9a7bf0155df
+      HVMG2: NOT_SUPPORTED
+    us-west-1:
+      HVM64: ami-088c153f74339f34c
+      HVMG2: ami-0a7fc72dc0e51aa77
+    us-west-2:
+      HVM64: ami-01fee56b22f308154
+      HVMG2: ami-0fe84a5b4563d8f27
+Resources:
+  WebServerInstance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      'AWS::CloudFormation::Init':
+        configSets:
+          InstallAndRun:
+            - Install
+            - Configure
+        Install:
+          packages:
+            yum:
+              docker: []
+              epel-release: []
+              nginx: []
+          files:
+            /tmp/docker-compose.yml:
+              content: !Join 
+                - ''
+                - - |
+                    version: "3"
+                    # More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+                    services:
+                      pihole:
+                        container_name: pihole
+                        image: pihole/pihole:latest
+                        # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
+                        ports:
+                          - "10053:53/tcp"
+                          - "10053:53/udp"
+                          - "10080:80/tcp"
+                        environment:
+                          TZ: 'Asia/Jakarta'
+                          WEBPASSWORD: 'explorepihole2022'
+                        # Volumes store your data between container upgrades
+                        volumes:
+                          - './etc-pihole:/etc/pihole'
+                          - './etc-dnsmasq.d:/etc/dnsmasq.d'
+                        #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+                        cap_add:
+                          - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
+                        restart: unless-stopped
+
+              mode: '640'
+              owner: root
+              group: root
+            /etc/nginx/nginx.conf:
+              content: !Join 
+                - ''
+                - - |
+                    user nginx;
+                    worker_processes auto;
+                    error_log /var/log/nginx/error.log;
+                    pid /run/nginx.pid;
+
+                    include /usr/share/nginx/modules/*.conf;
+
+                    events {
+                        worker_connections 1024;
+                    }
+
+                    http {
+                        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                                          '$status $body_bytes_sent "$http_referer" '
+                                          '"$http_user_agent" "$http_x_forwarded_for"';
+
+                        access_log  /var/log/nginx/access.log  main;
+
+                        sendfile            on;
+                        tcp_nopush          on;
+                        tcp_nodelay         on;
+                        keepalive_timeout   65;
+                        types_hash_max_size 4096;
+
+                        include             /etc/nginx/mime.types;
+                        default_type        application/octet-stream;
+
+                        include /etc/nginx/conf.d/*.conf;
+
+                        server {
+                            listen       443 ssl http2;
+                            listen       [::]:443 ssl http2;
+                            server_name  _;
+
+                      location / {
+                        proxy_pass http://localhost:80/;
+                      }
+                            ssl_certificate "/etc/pki/nginx/server.crt";
+                            ssl_certificate_key "/etc/pki/nginx/private/server.key";
+                            include /etc/nginx/default.d/*.conf;
+                            error_page 404 /404.html;
+                                location = /40x.html {
+                            }
+                            error_page 500 502 503 504 /50x.html;
+                                location = /50x.html {
+                            }
+                        }
+
+                    }                
+              mode: '640'
+              owner: root
+              group: root
+            /etc/pki/nginx/server.crt:
+              content: !Join 
+                - ''
+                - - |
+                    -----BEGIN CERTIFICATE-----
+                    MIICfDCCAeWgAwIBAgIJAKpC+vJ21MVnMA0GCSqGSIb3DQEBCwUAMFcxCzAJBgNV
+                    BAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQg
+                    Q29tcGFueSBMdGQxEzARBgNVBAMMCnNhbXBsZS5kb2gwHhcNMjIxMTEyMDMyNjAw
+                    WhcNMjMxMTEyMDMyNjAwWjBXMQswCQYDVQQGEwJYWDEVMBMGA1UEBwwMRGVmYXVs
+                    dCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENvbXBhbnkgTHRkMRMwEQYDVQQDDApz
+                    YW1wbGUuZG9oMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC/Rz9SJhaIHp0Y
+                    mS8AMhpM+Eitf+BfvQ5yWxNov7rCzoyZvXGKwKPejKs5Hbs+5kVxpFXcmwgn76th
+                    tY3BwSr++cPjOW4xiu0iZysNVvKG0OQ6YxcH8Uq+iAYzMFHj60C8xsEIOWJO/Xuj
+                    NVqzSTEYxskCcj88vNbhmbMHD+ftZQIDAQABo1AwTjAdBgNVHQ4EFgQUAgAsWSaV
+                    CwTqlr7y5H4xUTkfDuAwHwYDVR0jBBgwFoAUAgAsWSaVCwTqlr7y5H4xUTkfDuAw
+                    DAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOBgQAq++Am78DoR1HxlYAIQ24W
+                    UKNfFAr0cSFfs0S3NqwGiANjzIjWO9xl0GCWYLgOsVK1LUpPS4tyHkPQ5Z349sJQ
+                    MHmIOkGNX2TZydU2gmap/8qspoHnu39dx2NQb+wRZnd98SpEYCvqMLli4B10aToZ
+                    ugiICLAxGvAI4wH8x5l7Wg==
+                    -----END CERTIFICATE-----
+
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/pki/nginx/private/server.key:
+              content: !Join 
+                - ''
+                - - |
+                    -----BEGIN PRIVATE KEY-----
+                    MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAL9HP1ImFogenRiZ
+                    LwAyGkz4SK1/4F+9DnJbE2i/usLOjJm9cYrAo96Mqzkduz7mRXGkVdybCCfvq2G1
+                    jcHBKv75w+M5bjGK7SJnKw1W8obQ5DpjFwfxSr6IBjMwUePrQLzGwQg5Yk79e6M1
+                    WrNJMRjGyQJyPzy81uGZswcP5+1lAgMBAAECgYAsA1DmrizxFVpAlr7h5KV4oIjY
+                    o1wVq4LvfVVx/OwUd0KS/axqqPkL9IJRmi3Dw2inRZEcOfAegF+HFCeSNciWjRKx
+                    FCBTipRYhwZd1lXQygVNxV4Goi66VVBhdbdkxDtsPF+M71+Rbn82JCDA3ZYDAECF
+                    t/B6o1GCOQkLtqV94QJBAOoYnInK40gmnYTbXRaKfFXSFmkMy6t1cwnQMA9vcW/9
+                    Jcs01PZT0gwkBIRh6FN39jd4PyBGlwUuYD2GPqKYS/cCQQDRLQFOyEBb5uy4gDm/
+                    DeDtDAhctWw1t3ne/yqLna+ItLXzVbf3Mt8HmqF8kX5Bhg+Tdzs7Ul+TU6qaUen6
+                    H+KDAkBE8Uyg1CzNofnAF+65Zb2qdL3+4DLXYzanDDYrRZHt/mr0BrI1fYgd5Tmj
+                    V0ZZ1rmfqn1E3yU49GiJlhC6SAoPAkAwdoznA95lbItL8+ltKnoCcdc+I4p+p5PE
+                    5rmkv1P8CGJfjmyhCVhDGsBvbAYkiDrzn5xJkjwylh/gwTnEib6hAkAWSBeGiFrR
+                    S8GHTQZLm3RpOiG+hpKZ29L0k3/M4TJXWGwE0CHSDm8u51J05tXe0tAjYS74C85l
+                    p7OacqFblIQH
+                    -----END PRIVATE KEY-----
+
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Join 
+                - ''
+                - - |
+                    [main]
+                  - stack=
+                  - !Ref 'AWS::StackId'
+                  - |+
+
+                  - region=
+                  - !Ref 'AWS::Region'
+                  - |+
+
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join 
+                - ''
+                - - |
+                    [cfn-auto-reloader-hook]
+                  - |
+                    triggers=post.update
+                  - >
+                    path=Resources.WebServerInstance.Metadata.AWS::CloudFormation::Init
+                  - 'action=/opt/aws/bin/cfn-init -v '
+                  - '         --stack '
+                  - !Ref 'AWS::StackName'
+                  - '         --resource WebServerInstance '
+                  - '         --configsets InstallAndRun '
+                  - '         --region '
+                  - !Ref 'AWS::Region'
+                  - |+
+
+                  - |
+                    runas=root
+              mode: '000400'
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              nginx:
+                enabled: 'true'
+                ensureRunning: 'true'
+              docker:
+                enabled: 'true'
+                ensureRunning: 'true'
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+        Configure:
+          commands:
+            01_setup_docker_compose:
+              command: curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/bin/docker-compose && chmod +x /usr/bin/docker-compose
+            01_setup_pihole:
+              command: cd /tmp/ && docker-compose up -d
+            02_create_database:
+              command: docker run -itd --name doh-server  -p 80:8053 -e DOH_HTTP_PREFIX=/dns-query -e UPSTREAM_DNS_SERVER=udp:172.17.0.1:10053 satishweb/doh-server
+    Properties:
+      ImageId: !FindInMap 
+        - AWSRegionArch2AMI
+        - !Ref 'AWS::Region'
+        - !FindInMap 
+          - AWSInstanceType2Arch
+          - !Ref InstanceType
+          - Arch
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup
+      KeyName: !Ref KeyName
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash -xe
+            - |
+              yum update -y aws-cfn-bootstrap
+            - |
+              # Install the files and packages from the metadata
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource WebServerInstance '
+            - '         --configsets InstallAndRun '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+            - |
+              # Signal the status from cfn-init
+            - '/opt/aws/bin/cfn-signal -e $? '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource WebServerInstance '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - |+
+
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Enable HTTP access via port 80
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '10080'
+          ToPort: '10080'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: !Ref SSHLocation
+Outputs:
+  WebsiteURL:
+    Description: URL for newly created LAMP stack
+    Value: !Join 
+      - ''
+      - - 'http://'
+        - !GetAtt 
+          - WebServerInstance
+          - PublicDnsName
