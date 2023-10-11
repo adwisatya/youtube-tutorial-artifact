@@ -1,0 +1,55 @@
+stages:
+    - npmtest
+    - build
+    - deploy
+    - uitest
+npmtest:
+        stage: npmtest
+        when: on_success
+        only:
+            - master
+        image: node
+        services:
+            - docker:dind
+        script:
+            - npm install -g retire
+            - retire -v
+build:
+    stage: build
+    when: on_success
+    only:
+        - master
+    image: docker:stable
+    services:
+        - docker:dind
+    script:
+        - docker login -u cicd-example -p $CI_TOKEN registry.gitlab.com
+        - docker build -t registry.gitlab.com/adwisatya/ci-cd-example .
+        - docker push registry.gitlab.com/adwisatya/ci-cd-example
+
+deploy:
+        stage: deploy
+        when: on_success
+        only:
+            - master
+        image: curlimages/curl:latest
+        services:
+            - docker:dind
+        script:
+            - curl --user deployer:$JENKINS_PWD http://34.135.146.218:8080/job/auto-deploy/build?token=untukautodeploynginx
+uitest:
+        stage: uitest
+        when: on_success
+        only:
+            - master
+        image: selenium/standalone-chrome
+        services:
+            - docker:dind
+        script:
+            - pwd
+            - ls -la
+            - sudo apt-get update
+            - sudo apt-get install python3-pip -y
+            - pip3 install selenium
+            - python3 selenium/test_form.py
+            
